@@ -1079,7 +1079,12 @@
           const [yy,mm,dd] = key2.split('-').map(Number);
           const dObj = new Date(yy, mm-1, dd);
           setOverrideForDate(dObj, names);
-          renderTable();
+          // Lưu ý: KHÔNG gọi renderTable() ở đây — vẽ lại cả bảng ngay lúc này sẽ phá huỷ
+          // ô textarea đang được focus trên điện thoại (một số bàn phím ảo bắn sự kiện
+          // "change" ngay khi xuống dòng), khiến người dùng bị mất focus giữa chừng lúc
+          // đang gõ, nhìn như bị lưu/ngắt ngang trước khi gõ xong. Chỉ đồng bộ 3 ô
+          // hôm nay/mai/mốt + lưu dữ liệu, còn bảng sẽ tự cập nhật nhãn "đã sửa riêng"
+          // ở lần vẽ lại tiếp theo (ví dụ khi tắt/bật lại chế độ sửa).
           renderTriple();
           scheduleAutoSave();
         });
