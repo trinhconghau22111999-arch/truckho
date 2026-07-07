@@ -372,7 +372,6 @@
           <button class="wk-btn" id="wk-next-btn">Trang sau &rarr;</button>
         </div>
         <div class="wk-bottom-actions">
-          <button class="wk-btn" id="wk-manual-save-btn">💾 Lưu</button>
           <button class="wk-btn secondary" id="wk-reset-btn">Xoá tất cả</button>
           <span class="wk-save-msg" id="wk-save-msg"></span>
         </div>
@@ -1129,9 +1128,6 @@
   });
   $('wk-save-table-edits-btn').addEventListener('click', ()=>{
     saveAllTableEdits();
-  });
-  $('wk-manual-save-btn').addEventListener('click', ()=>{
-    saveState();
   });
 
   $('wk-reset-btn').addEventListener('click', async ()=>{
