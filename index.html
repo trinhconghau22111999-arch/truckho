@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lịch trực kho</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+  :root{
+    --bg:#EFE8D8;
+    --panel:#FFFEFB;
+    --ink:#22252B;
+    --steel:#6B7280;
+    --steel-soft:#C9CDD1;
+    --yellow:#FFC93C;
+    --orange:#FF6B35;
+    --teal:#2EC4B6;
+    --blue:#3A86FF;
+    --pink:#FF4D6D;
+    --purple:#8338EC;
+    --green-ma:#8DC63F;
+    --line: rgba(34,37,43,0.10);
+    --radius: 14px;
+    --shadow: 0 6px 20px rgba(34,37,43,0.09);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  .wk-root{
+    font-family:'Be Vietnam Pro', system-ui, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100%;
+    padding:0 0 40px 0;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .wk-header{
+    position:relative;
+    overflow:hidden;
+    padding:26px 26px 24px;
+    background:linear-gradient(120deg, #1B1D22 0%, #22303A 55%, #123A38 100%);
+    color:var(--panel);
+    margin-bottom:26px;
+    border-radius:0 0 22px 22px;
+    box-shadow:var(--shadow);
+  }
+  .wk-header::before{
+    content:"";
+    position:absolute; inset:0;
+    background:repeating-linear-gradient(120deg, var(--yellow) 0 14px, transparent 14px 28px, var(--orange) 28px 42px, transparent 42px 56px, var(--teal) 56px 70px, transparent 70px 84px);
+    opacity:0.14;
+  }
+  .wk-header-inner{position:relative; display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  .wk-eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--yellow); margin:0 0 6px;
+  }
+  .wk-title{
+    font-family:'Be Vietnam Pro', sans-serif;
+    font-weight:800; font-size:clamp(22px,4vw,32px);
+    text-transform:uppercase; letter-spacing:.02em; margin:0;
+  }
+  .wk-headline-tag{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px; color:var(--ink); opacity:1; font-weight:700;
+    background:var(--yellow); border-radius:999px; padding:7px 14px;
+    white-space:nowrap;
+  }
+  .wk-wrap{ max-width:980px; margin:0 auto; padding:0 20px; display:flex; flex-direction:column; gap:22px;}
+  .wk-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:22px; align-items:start; }
+  @media (max-width:800px){ .wk-grid{grid-template-columns:1fr;} }
+
+  .wk-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px 22px;
+    position:relative;
+    box-shadow:var(--shadow);
+  }
+  .wk-card::before{
+    content:""; position:absolute; top:14px; left:0; width:5px; height:calc(100% - 28px);
+    background:var(--teal); border-radius:0 4px 4px 0;
+  }
+  .wk-card.orange::before{ background:var(--orange); }
+  .wk-card-label{
+    font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--steel); margin:0 0 14px; display:flex; align-items:center; gap:8px;
+    font-weight:700;
+  }
+  .wk-card-label::after{ content:""; flex:1; height:1px; background:var(--line); }
+
+  /* Stepper */
+  .wk-stepper{ display:flex; gap:7px; margin-bottom:18px; flex-wrap:wrap; }
+  .wk-step-dot{
+    font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:700;
+    width:28px; height:28px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    border:2px solid var(--steel-soft); background:#fff; color:var(--steel);
+    cursor:pointer; transition:transform .12s ease;
+  }
+  .wk-step-dot:hover{ transform:translateY(-1px); }
+  .wk-step-dot.active{ background:var(--teal); color:#fff; border-color:var(--teal); }
+  .wk-step-dot.done{ border-color:var(--yellow); background:var(--yellow); color:var(--ink); }
+  .wk-step-title{ font-weight:800; font-size:15.5px; margin:0 0 4px; }
+  .wk-step-sub{ font-size:12.5px; color:var(--steel); margin:0 0 14px; }
+
+  label.wk-field{ display:block; font-size:13px; font-weight:600; margin:14px 0 6px; }
+  label.wk-field:first-child{ margin-top:0; }
+  .wk-hint{ font-weight:400; font-size:11.5px; color:var(--steel); display:block; margin-top:3px;}
+
+  input[type=text], input[type=number], input[type=date], select{
+    width:100%; padding:10px 12px; border:1.5px solid var(--steel-soft);
+    background:#fff; border-radius:9px; font-family:inherit; font-size:14px; color:var(--ink);
+    transition:border-color .12s ease;
+  }
+  input:focus, select:focus{ outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(46,196,182,0.18); }
+
+  .wk-btn{
+    font-family:'JetBrains Mono', monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase;
+    background:linear-gradient(120deg, #1B1D22, #22303A); color:#fff; border:none;
+    padding:11px 18px; border-radius:999px; cursor:pointer; font-weight:600;
+    box-shadow:0 3px 10px rgba(34,37,43,0.22);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .wk-btn:hover{ transform:translateY(-1px); box-shadow:0 5px 14px rgba(34,37,43,0.28); }
+  .wk-btn.secondary{ background:transparent; color:var(--ink); border:1.5px solid var(--steel-soft); box-shadow:none; }
+  .wk-btn.secondary:hover{ background:var(--line); transform:none; box-shadow:none; }
+  .wk-btn:disabled{ opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
+  .wk-btn:focus-visible{ outline:2px solid var(--orange); outline-offset:2px; }
+
+  .wk-nav-row{ display:flex; justify-content:space-between; gap:10px; margin-top:20px; align-items:center; flex-wrap:wrap; }
+  .wk-save-msg{ font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--steel); }
+
+  .wk-member-list{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .wk-member-row{ display:flex; align-items:center; gap:8px; }
+  .wk-member-row span{ font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--steel); width:64px; flex-shrink:0; }
+
+  .wk-bottom-actions{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; border-top:1px dashed var(--line); padding-top:14px; }
+
+  /* Dial */
+  .wk-dial-canvas{ position:relative; width:100%; aspect-ratio:1/1; max-width:230px; margin:12px auto 6px; }
+  .wk-dial-svg{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+  .wk-group-box{
+    position:absolute; transform:translate(-50%,-50%);
+    background:#fff; border:2px solid var(--green-ma);
+    border-radius:10px;
+    padding:6px 10px; width:max-content; max-width:none; white-space:nowrap; text-align:left;
+    box-shadow:0 2px 8px rgba(34,37,43,0.10);
+  }
+  .wk-group-box.active{ border-color:var(--orange); box-shadow:0 0 0 3px rgba(255,107,53,0.22), 0 2px 8px rgba(34,37,43,0.10); }
+  .wk-group-box-header{ font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--steel); margin:0 0 3px; font-weight:700; }
+  .wk-group-box.active .wk-group-box-header{ color:var(--orange); }
+  .wk-group-box-members{ list-style:none; margin:0; padding:0; font-size:11.5px; line-height:1.4; white-space:nowrap; }
+  .wk-group-box-members li{ font-weight:700; white-space:nowrap; }
+  .wk-group-box-empty{ font-size:10.5px; color:var(--steel-soft); font-style:italic; white-space:nowrap; }
+  .wk-dial-caption{ font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--steel); text-align:center; margin-top:34px; }
+
+  /* Triple row today/tomorrow/day-after */
+  .wk-triple-row{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  @media (max-width:640px){ .wk-triple-row{ grid-template-columns:1fr; } }
+  .wk-duty-tag{
+    position:relative;
+    background:var(--panel); border:1.5px solid var(--line); border-radius:12px;
+    padding:14px 14px 14px 18px;
+    box-shadow:var(--shadow);
+  }
+  .wk-duty-tag.today{ box-shadow:0 0 0 2px rgba(255,107,53,0.18), var(--shadow); }
+  .wk-duty-kicker{ font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--steel); margin:0 0 4px; font-weight:700; }
+  .wk-duty-tag.today .wk-duty-kicker{ color:var(--orange); }
+  .wk-duty-date{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--steel); margin:0 0 8px; }
+  .wk-duty-group-name{ font-weight:800; font-size:13.5px; margin:0 0 6px; display:flex; align-items:center; gap:7px; }
+  .wk-color-dot{ display:inline-block; width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .wk-duty-names{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px; }
+  .wk-duty-names li{ font-weight:600; font-size:14px; display:flex; align-items:center; gap:7px; }
+  .wk-duty-names li::before{ content:"—"; color:var(--yellow); font-weight:900; }
+  .wk-duty-tag.today .wk-duty-names li::before{ color:var(--orange); }
+
+  /* Table */
+  table.wk-table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  table.wk-table th{
+    font-family:'JetBrains Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+    text-align:left; padding:8px 8px; border-bottom:2px solid var(--ink); color:var(--steel);
+  }
+  table.wk-table td{ padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.wk-table tbody tr:nth-child(even):not(.is-today):not(.is-tomorrow) td{ background:rgba(34,37,43,0.02); }
+  table.wk-table tr.is-today td{ background:rgba(255,107,53,0.10); font-weight:700; }
+  table.wk-table tr.is-tomorrow td{ background:rgba(255,201,60,0.18); }
+  .wk-warn{ background:#FFF4E0; border:1.5px dashed var(--orange); color:#93450A; font-size:13px; padding:10px 14px; border-radius:10px; margin-top:12px; }
+
+  /* ---------- AUTH SCREEN ---------- */
+  .wk-auth-screen{
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--bg);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px;
+    padding:24px;
+    font-family:'Be Vietnam Pro', system-ui, sans-serif;
+    color:var(--ink);
+  }
+  .wk-auth-card{
+    width:100%; max-width:400px;
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:26px 26px 22px; position:relative; overflow:hidden;
+  }
+  .wk-auth-card::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:6px;
+    background:linear-gradient(120deg, var(--yellow), var(--orange), var(--teal));
+  }
+  .wk-auth-eyebrow{ font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--steel); margin:10px 0 2px; }
+  .wk-auth-title{ font-weight:800; font-size:22px; margin:0 0 16px; text-transform:uppercase; letter-spacing:.02em; }
+  .wk-auth-tabs{ display:flex; gap:6px; margin-bottom:18px; background:var(--bg); border-radius:999px; padding:4px; }
+  .wk-auth-tab{
+    flex:1; text-align:center; padding:8px 10px; border-radius:999px; cursor:pointer;
+    font-family:'JetBrains Mono', monospace; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--steel); transition:all .12s ease;
+  }
+  .wk-auth-tab.active{ background:var(--ink); color:#fff; }
+  .wk-auth-form{ display:flex; flex-direction:column; }
+  .wk-auth-error{
+    background:#FFF0EE; border:1.5px dashed var(--pink); color:#9A1030; font-size:12.5px;
+    padding:9px 12px; border-radius:9px; margin-top:12px; display:none;
+  }
+  .wk-auth-error.show{ display:block; }
+  .wk-auth-submit{ margin-top:18px; width:100%; text-align:center; }
+  .wk-auth-note{ font-size:11.5px; color:var(--steel); margin-top:14px; line-height:1.5; }
+  .wk-auth-loading{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--steel); text-align:center; margin-top:10px; display:none; }
+  .wk-auth-loading.show{ display:block; }
+
+  /* header user box */
+  .wk-user-box{
+    display:flex; align-items:center; gap:10px;
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16);
+    padding:8px 8px 8px 14px; border-radius:999px;
+  }
+  .wk-user-box-text{ font-family:'JetBrains Mono', monospace; font-size:11.5px; line-height:1.35; color:var(--panel); }
+  .wk-user-box-text b{ color:var(--yellow); }
+  .wk-logout-btn{
+    font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+    background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.25);
+    padding:7px 12px; border-radius:999px; cursor:pointer; font-weight:600; white-space:nowrap;
+  }
+  .wk-logout-btn:hover{ background:rgba(255,255,255,0.22); }
+</style>
+</head>
+<body>
+
+<!-- ================= AUTH SCREEN ================= -->
+<div class="wk-auth-screen" id="wk-auth-screen">
+  <div class="wk-auth-card">
+    <p class="wk-auth-eyebrow">Lịch trực kho</p>
+    <h1 class="wk-auth-title" id="wk-auth-title">Đăng nhập</h1>
+
+    <div class="wk-auth-tabs">
+      <div class="wk-auth-tab active" id="wk-tab-login">Đăng nhập</div>
+      <div class="wk-auth-tab" id="wk-tab-register">Đăng ký kho mới</div>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div class="wk-auth-form" id="wk-login-form">
+      <label class="wk-field" style="margin-top:0;">ID Admin</label>
+      <input type="text" id="wk-login-id" autocomplete="username" placeholder="Ví dụ: admin1" />
+      <label class="wk-field">Mật khẩu</label>
+      <input type="password" id="wk-login-pass" autocomplete="current-password" placeholder="••••••••" />
+      <button class="wk-btn wk-auth-submit" id="wk-login-submit">Đăng nhập</button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div class="wk-auth-form" id="wk-register-form" style="display:none;">
+      <label class="wk-field" style="margin-top:0;">Tên kho</label>
+      <input type="text" id="wk-reg-name" placeholder="Ví dụ: Kho Bình Dương 1" />
+      <label class="wk-field">ID Admin <span class="wk-hint">(dùng để đăng nhập, không dấu, không khoảng trắng)</span></label>
+      <input type="text" id="wk-reg-id" autocomplete="username" placeholder="Ví dụ: admin1" />
+      <label class="wk-field">Mật khẩu <span class="wk-hint">(tối thiểu 6 ký tự)</span></label>
+      <input type="password" id="wk-reg-pass" autocomplete="new-password" placeholder="••••••••" />
+      <label class="wk-field">Nhập lại mật khẩu</label>
+      <input type="password" id="wk-reg-pass2" autocomplete="new-password" placeholder="••••••••" />
+      <button class="wk-btn wk-auth-submit" id="wk-register-submit">Tạo kho &amp; đăng ký</button>
+    </div>
+
+    <p class="wk-auth-error" id="wk-auth-error"></p>
+    <p class="wk-auth-loading" id="wk-auth-loading">Đang xử lý…</p>
+    <p class="wk-auth-note">Mỗi tài khoản Admin chỉ được gắn với đúng 1 kho — kho tạo lúc đăng ký. Dữ liệu được đồng bộ thời gian thực qua Firebase.</p>
+  </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div class="wk-root" id="wk-app" style="display:none;">
+  <div class="wk-header">
+    <div class="wk-header-inner">
+      <div>
+        <p class="wk-eyebrow" id="wk-warehouse-name">Ca trực &mdash; xoay vòng theo nhóm</p>
+        <h1 class="wk-title">Lịch trực kho</h1>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div class="wk-headline-tag" id="wk-today-tag">--/--/----</div>
+        <div class="wk-user-box">
+          <span class="wk-user-box-text" id="wk-user-box-text">—</span>
+          <button class="wk-logout-btn" id="wk-logout-btn">Đăng xuất</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wk-wrap">
+    <div class="wk-grid">
+      <!-- LEFT: WIZARD SETUP CARD -->
+      <div class="wk-card">
+        <p class="wk-card-label">Thiết lập nhóm trực</p>
+        <div class="wk-stepper" id="wk-stepper"></div>
+        <div id="wk-step-content"></div>
+        <div class="wk-nav-row">
+          <button class="wk-btn secondary" id="wk-back-btn">&larr; Trang trước</button>
+          <button class="wk-btn" id="wk-next-btn">Trang sau &rarr;</button>
+        </div>
+        <div class="wk-bottom-actions">
+          <button class="wk-btn secondary" id="wk-reset-btn">Xoá tất cả</button>
+          <span class="wk-save-msg" id="wk-save-msg"></span>
+        </div>
+      </div>
+
+      <!-- RIGHT: DIAL CARD -->
+      <div class="wk-card orange">
+        <p class="wk-card-label">Vòng xoay trực</p>
+        <div class="wk-dial-canvas" id="wk-dial-canvas">
+          <svg class="wk-dial-svg" id="wk-dial-svg" viewBox="0 0 300 300"></svg>
+          <!-- group boxes injected here -->
+        </div>
+        <p class="wk-dial-caption">Ô viền cam là nhóm trực hôm nay</p>
+      </div>
+    </div>
+
+    <!-- TODAY / TOMORROW / DAY AFTER -->
+    <div class="wk-triple-row" id="wk-triple-row"></div>
+
+    <!-- SCHEDULE TABLE -->
+    <div class="wk-card">
+      <p class="wk-card-label">Bảng lịch trực sắp tới</p>
+      <div style="overflow-x:auto; border-radius:10px; border:1px solid var(--line);">
+        <table class="wk-table">
+          <thead>
+            <tr><th style="width:150px;">Ngày tháng</th><th>Người trực</th></tr>
+          </thead>
+          <tbody id="wk-schedule-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (compat build) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.min.js"></script>
+
+<script>
+(function(){
+  // ============================================================
+  // FIREBASE CONFIG — dán config dự án Firebase của bạn vào đây
+  // (Firebase Console > Project settings > General > Your apps > SDK setup and configuration)
+  // ============================================================
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCiQh1huIsZwB7No3x8Wdt1IKYH8dY5LL0",
+    authDomain: "lichtruckho.firebaseapp.com",
+    projectId: "lichtruckho",
+    storageBucket: "lichtruckho.firebasestorage.app",
+    messagingSenderId: "377094775325",
+    appId: "1:377094775325:web:6d505cce30d661b1845cf4"
+  };
+  // ID admin không phải là email thật, nên Firebase Auth cần một domain giả để tạo thành email hợp lệ nội bộ.
+  const EMAIL_DOMAIN = '@kho-truc.local';
+  const WAREHOUSES_COLLECTION = 'warehouses';
+
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  function adminIdToEmail(adminId){
+    return String(adminId).trim().toLowerCase().replace(/\s+/g,'') + EMAIL_DOMAIN;
+  }
+
+  let currentUid = null;
+  let unsubscribeSnapshot = null;
+
+  const WEEKDAYS_VN = ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
+  const GROUP_COLORS = ['#FFC93C','#FF6B35','#2EC4B6','#3A86FF','#FF4D6D','#8338EC','#06D6A0','#FB8B24'];
+  function groupColor(i){ return GROUP_COLORS[i % GROUP_COLORS.length]; }
+
+  let state = {
+    groupCount: 0,
+    groups: [],          // [{ memberCount:number, members:[string,...] }]
+    startDate: new Date().toISOString().slice(0,10),
+    startGroupIndex: 0,  // 0-based index of group on duty on startDate
+    wizardStep: 0
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function toDateOnly(d){
+    const dt = new Date(d);
+    return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+  }
+
+  function fmtDate(d){
+    const dt = new Date(d);
+    const dd = String(dt.getDate()).padStart(2,'0');
+    const mm = String(dt.getMonth()+1).padStart(2,'0');
+    return `${dd}/${mm}/${dt.getFullYear()}`;
+  }
+
+  function totalSteps(){
+    if(!state.groupCount || state.groupCount < 1) return 1;
+    return state.groupCount + 2; // step0=count, 1..N group setup, N+1 = start date/group
+  }
+
+  function clampStep(){
+    const t = totalSteps();
+    if(state.wizardStep > t-1) state.wizardStep = t-1;
+    if(state.wizardStep < 0) state.wizardStep = 0;
+  }
+
+  function ensureGroupsArray(){
+    const n = state.groupCount || 0;
+    const arr = state.groups || [];
+    while(arr.length < n) arr.push({ memberCount:1, members:[''] });
+    if(arr.length > n) arr.length = n;
+    state.groups = arr;
+  }
+
+  function groupLabel(i){ return 'Nhóm ' + (i+1); }
+
+  function dayIndexFor(dateObj){
+    const start = toDateOnly(state.startDate);
+    const target = toDateOnly(dateObj);
+    const diffMs = target.getTime() - start.getTime();
+    return Math.round(diffMs / 86400000);
+  }
+
+  function groupIndexForDate(dateObj){
+    const n = state.groupCount;
+    if(!n || n < 1) return -1;
+    const idx = dayIndexFor(dateObj);
+    return (((state.startGroupIndex + idx) % n) + n) % n;
+  }
+
+  function groupMembersDisplay(g){
+    if(!g || !g.members) return [];
+    return g.members.filter(m => m && m.trim().length > 0);
+  }
+
+  // ---------- FIRESTORE SYNC (thời gian thực) ----------
+  function warehouseDocRef(uid){
+    return db.collection(WAREHOUSES_COLLECTION).doc(uid);
+  }
+
+  function startRealtimeSync(uid){
+    if(unsubscribeSnapshot) unsubscribeSnapshot();
+    unsubscribeSnapshot = warehouseDocRef(uid).onSnapshot((snap)=>{
+      if(snap.exists){
+        const data = snap.data();
+        // giữ nguyên wizardStep hiện tại trên thiết bị này, chỉ đồng bộ phần dữ liệu chung
+        const keepStep = state.wizardStep;
+        state = Object.assign({
+          groupCount:0, groups:[], startDate:new Date().toISOString().slice(0,10),
+          startGroupIndex:0, wizardStep:0
+        }, data);
+        if(typeof data.wizardStep !== 'number') state.wizardStep = keepStep;
+        ensureGroupsArray();
+        clampStep();
+        renderAll();
+        updateUserBox(data);
+      }
+    }, (err)=>{
+      console.error('Lỗi đồng bộ Firestore:', err);
+    });
+  }
+
+  function stopRealtimeSync(){
+    if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+  }
+
+  let saveTimer = null;
+  async function saveState(){
+    if(!currentUid) return;
+    try{
+      await warehouseDocRef(currentUid).set(state, { merge:true });
+      $('wk-save-msg').textContent = 'Đã lưu & đồng bộ ✓';
+      setTimeout(()=>{ $('wk-save-msg').textContent=''; }, 2200);
+    }catch(e){
+      $('wk-save-msg').textContent = 'Lỗi đồng bộ, thử lại sau';
+      console.error(e);
+    }
+  }
+
+  // Tự động lưu (debounce) mỗi khi state thay đổi qua nhập liệu, để mọi thiết bị khác cập nhật realtime
+  function scheduleAutoSave(){
+    if(!currentUid) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveState, 500);
+  }
+
+  function updateUserBox(data){
+    const box = $('wk-user-box-text');
+    const nameEl = $('wk-warehouse-name');
+    if(!box) return;
+    const name = (data && data.name) ? data.name : 'Kho chưa đặt tên';
+    const adminId = (data && data.adminId) ? data.adminId : '';
+    box.innerHTML = `<b>${escapeHtml(name)}</b><br/>Admin: ${escapeHtml(adminId)}`;
+    if(nameEl) nameEl.textContent = name;
+  }
+
+  // ---------- AUTH SCREEN ----------
+  function showAuthScreen(){
+    stopRealtimeSync();
+    currentUid = null;
+    $('wk-app').style.display = 'none';
+    $('wk-auth-screen').style.display = 'flex';
+  }
+
+  function showApp(uid){
+    currentUid = uid;
+    $('wk-auth-screen').style.display = 'none';
+    $('wk-app').style.display = '';
+    startRealtimeSync(uid);
+  }
+
+  function setAuthError(msg){
+    const el = $('wk-auth-error');
+    if(msg){ el.textContent = msg; el.classList.add('show'); }
+    else { el.textContent=''; el.classList.remove('show'); }
+  }
+
+  function setAuthLoading(on){
+    $('wk-auth-loading').classList.toggle('show', !!on);
+  }
+
+  function switchAuthTab(tab){
+    const isLogin = tab === 'login';
+    $('wk-tab-login').classList.toggle('active', isLogin);
+    $('wk-tab-register').classList.toggle('active', !isLogin);
+    $('wk-login-form').style.display = isLogin ? '' : 'none';
+    $('wk-register-form').style.display = isLogin ? 'none' : '';
+    $('wk-auth-title').textContent = isLogin ? 'Đăng nhập' : 'Đăng ký kho mới';
+    setAuthError(null);
+  }
+
+  function friendlyAuthError(code){
+    const map = {
+      'auth/invalid-email': 'ID Admin không hợp lệ.',
+      'auth/user-not-found': 'Không tìm thấy tài khoản với ID Admin này.',
+      'auth/wrong-password': 'Sai mật khẩu.',
+      'auth/invalid-credential': 'ID Admin hoặc mật khẩu không đúng.',
+      'auth/email-already-in-use': 'ID Admin này đã được đăng ký, vui lòng chọn ID khác.',
+      'auth/weak-password': 'Mật khẩu quá ngắn (tối thiểu 6 ký tự).',
+      'auth/too-many-requests': 'Bạn thử sai quá nhiều lần, vui lòng thử lại sau ít phút.'
+    };
+    return map[code] || 'Có lỗi xảy ra, vui lòng thử lại.';
+  }
+
+  async function doLogin(){
+    setAuthError(null);
+    const idVal = $('wk-login-id').value.trim();
+    const passVal = $('wk-login-pass').value;
+    if(!idVal || !passVal){ setAuthError('Vui lòng nhập đầy đủ ID Admin và mật khẩu.'); return; }
+    setAuthLoading(true);
+    try{
+      await auth.signInWithEmailAndPassword(adminIdToEmail(idVal), passVal);
+      // onAuthStateChanged sẽ tự chuyển sang app
+    }catch(e){
+      setAuthError(friendlyAuthError(e.code));
+    }finally{
+      setAuthLoading(false);
+    }
+  }
+
+  async function doRegister(){
+    setAuthError(null);
+    const name = $('wk-reg-name').value.trim();
+    const idVal = $('wk-reg-id').value.trim();
+    const pass = $('wk-reg-pass').value;
+    const pass2 = $('wk-reg-pass2').value;
+    if(!name){ setAuthError('Vui lòng nhập tên kho.'); return; }
+    if(!idVal){ setAuthError('Vui lòng nhập ID Admin.'); return; }
+    if(pass.length < 6){ setAuthError('Mật khẩu cần tối thiểu 6 ký tự.'); return; }
+    if(pass !== pass2){ setAuthError('Mật khẩu nhập lại không khớp.'); return; }
+    setAuthLoading(true);
+    try{
+      const cred = await auth.createUserWithEmailAndPassword(adminIdToEmail(idVal), pass);
+      const uid = cred.user.uid;
+      const initialState = {
+        name: name,
+        adminId: idVal,
+        groupCount: 0,
+        groups: [],
+        startDate: new Date().toISOString().slice(0,10),
+        startGroupIndex: 0,
+        wizardStep: 0
+      };
+      await warehouseDocRef(uid).set(initialState);
+      // onAuthStateChanged sẽ tự chuyển sang app và bắt đầu đồng bộ realtime
+    }catch(e){
+      setAuthError(friendlyAuthError(e.code));
+    }finally{
+      setAuthLoading(false);
+    }
+  }
+
+  async function doLogout(){
+    try{ await auth.signOut(); }catch(e){ /* ignore */ }
+  }
+
+  // ---------- STEPPER ----------
+  function renderStepper(){
+    const t = totalSteps();
+    const holder = $('wk-stepper');
+    holder.innerHTML = '';
+    for(let i=0;i<t;i++){
+      const dot = document.createElement('div');
+      dot.className = 'wk-step-dot' + (i===state.wizardStep ? ' active' : (i<state.wizardStep ? ' done' : ''));
+      dot.textContent = i+1;
+      dot.title = stepTitle(i);
+      dot.addEventListener('click', ()=>{ state.wizardStep = i; renderAll(); });
+      holder.appendChild(dot);
+    }
+  }
+
+  function stepTitle(i){
+    if(i===0) return 'Số nhóm trực kho';
+    const t = totalSteps();
+    if(i===t-1) return 'Ngày bắt đầu';
+    return groupLabel(i-1);
+  }
+
+  // ---------- STEP CONTENT ----------
+  function renderStepContent(){
+    const holder = $('wk-step-content');
+    const t = totalSteps();
+    const step = state.wizardStep;
+
+    if(step === 0){
+      holder.innerHTML = `
+        <p class="wk-step-title">Bước 1 &middot; Số nhóm trực kho</p>
+        <p class="wk-step-sub">Kho của bạn chia làm bao nhiêu nhóm trực?</p>
+        <label class="wk-field">Số nhóm</label>
+        <input type="number" id="wk-group-count" min="1" max="20" value="${state.groupCount || ''}" placeholder="Ví dụ: 3" />
+      `;
+      $('wk-group-count').addEventListener('input', (e)=>{
+        const v = Math.max(0, Math.min(20, Number(e.target.value)||0));
+        state.groupCount = v;
+        ensureGroupsArray();
+        renderDial();
+        scheduleAutoSave();
+      });
+      return;
+    }
+
+    if(step === t-1){
+      ensureGroupsArray();
+      let options = state.groups.map((g,i)=>`<option value="${i}" ${i===state.startGroupIndex?'selected':''}>${groupLabel(i)}</option>`).join('');
+      holder.innerHTML = `
+        <p class="wk-step-title">Bước cuối &middot; Ngày bắt đầu vòng trực</p>
+        <p class="wk-step-sub">Chọn ngày bắt đầu và nhóm nào trực vào đúng ngày đó. Từ đó lịch sẽ tự xoay vòng lần lượt.</p>
+        <label class="wk-field">Ngày bắt đầu</label>
+        <input type="date" id="wk-start-date" value="${state.startDate}" />
+        <label class="wk-field">Vào ngày này, nhóm nào trực?</label>
+        <select id="wk-start-group">${options}</select>
+      `;
+      $('wk-start-date').addEventListener('change', (e)=>{
+        state.startDate = e.target.value;
+        renderDial(); renderTriple(); renderTable();
+        scheduleAutoSave();
+      });
+      $('wk-start-group').addEventListener('change', (e)=>{
+        state.startGroupIndex = Number(e.target.value);
+        renderDial(); renderTriple(); renderTable();
+        scheduleAutoSave();
+      });
+      return;
+    }
+
+    // group member setup step
+    const gi = step - 1;
+    ensureGroupsArray();
+    const g = state.groups[gi] || { memberCount:1, members:[''] };
+    holder.innerHTML = `
+      <p class="wk-step-title">Bước ${step+1} &middot; ${groupLabel(gi)}</p>
+      <p class="wk-step-sub">Nhập số thành viên rồi điền tên từng người trong ${groupLabel(gi)}.</p>
+      <label class="wk-field">Số thành viên
+        <span class="wk-hint">Gõ số xong nhấn Enter hoặc chạm ra ngoài để hiện ô nhập tên</span>
+      </label>
+      <input type="number" id="wk-member-count" min="1" max="30" value="${g.memberCount}" />
+      <div class="wk-member-list" id="wk-member-list"></div>
+    `;
+    renderMemberRows(gi);
+
+    // 'change' fires once user finishes editing the number (blur / enter / stepper arrows),
+    // so typing multi-digit numbers like "12" is not interrupted mid-keystroke.
+    $('wk-member-count').addEventListener('change', (e)=>{
+      applyMemberCount(gi, e.target.value);
+    });
+    $('wk-member-count').addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){ e.target.blur(); }
+    });
+  }
+
+  function applyMemberCount(gi, rawValue){
+    const v = Math.max(1, Math.min(30, Number(rawValue)||1));
+    const grp = state.groups[gi];
+    grp.memberCount = v;
+    while(grp.members.length < v) grp.members.push('');
+    if(grp.members.length > v) grp.members.length = v;
+    renderMemberRows(gi);
+    renderDial();
+    scheduleAutoSave();
+  }
+
+  function renderMemberRows(gi){
+    const g = state.groups[gi];
+    const list = $('wk-member-list');
+    if(!g || !list) return;
+    let rows = '';
+    for(let i=0;i<g.memberCount;i++){
+      const val = escapeHtml(g.members[i] || '');
+      rows += `<div class="wk-member-row"><span>TV ${i+1}</span><input type="text" class="wk-member-input" data-idx="${i}" value="${val}" placeholder="Tên thành viên ${i+1}" /></div>`;
+    }
+    list.innerHTML = rows;
+    list.querySelectorAll('.wk-member-input').forEach(inp=>{
+      inp.addEventListener('input', (e)=>{
+        const idx = Number(e.target.getAttribute('data-idx'));
+        state.groups[gi].members[idx] = e.target.value;
+        renderDial();
+        renderTriple();
+        renderTable();
+        scheduleAutoSave();
+      });
+    });
+  }
+
+  function renderNav(){
+    const t = totalSteps();
+    const step = state.wizardStep;
+    $('wk-back-btn').disabled = step === 0;
+    $('wk-next-btn').textContent = (step === t-1) ? 'Lưu & hoàn tất ✓' : 'Trang sau →';
+  }
+
+  // ---------- DIAL ----------
+  function renderDial(){
+    const svg = $('wk-dial-svg');
+    const canvas = $('wk-dial-canvas');
+    // remove old boxes
+    canvas.querySelectorAll('.wk-group-box').forEach(el => el.remove());
+
+    const n = state.groupCount || 0;
+    if(n < 1){
+      svg.innerHTML = `<circle cx="150" cy="150" r="70" fill="none" stroke="#C9CDD1" stroke-dasharray="6 6" stroke-width="2.5"/><text x="150" y="155" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" fill="#6B7280">Chưa có nhóm trực</text>`;
+      return;
+    }
+
+    const today = new Date();
+    const activeIdx = groupIndexForDate(today);
+
+    const cx=150, cy=150, rCircle=52;
+    let svgInner = `<circle cx="${cx}" cy="${cy}" r="${rCircle}" fill="none" stroke="#22252B" stroke-width="2.5" stroke-dasharray="${n>1?'0':'5 5'}"/>`;
+
+    const boxRadiusPct = 44; // percent of canvas for box position (further out = more room for wide boxes)
+
+    for(let i=0;i<n;i++){
+      const angle = (i * (360/n) - 90) * Math.PI/180;
+      const isActive = i === activeIdx;
+      const color = groupColor(i);
+      // point on circle edge (svg coords)
+      const ex = cx + rCircle*Math.cos(angle);
+      const ey = cy + rCircle*Math.sin(angle);
+      // box position in percent of canvas (canvas is square, center 50/50)
+      const bx = 50 + boxRadiusPct*Math.cos(angle);
+      const by = 50 + boxRadiusPct*Math.sin(angle);
+      // line endpoint toward box, in svg coords (canvas viewBox is 300x300 matching 0-100%)
+      // line length (from circle edge outward) shrunk to 1/3 of the previous reach
+      const lineFullRadius = boxRadiusPct*3;
+      const lineRadius = rCircle + (lineFullRadius - rCircle)/3;
+      const lx = 150 + lineRadius*Math.cos(angle);
+      const ly = 150 + lineRadius*Math.sin(angle);
+
+      svgInner += `<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${lx.toFixed(1)}" y2="${ly.toFixed(1)}" stroke="${color}" stroke-width="${isActive?3:1.75}" opacity="${isActive?1:0.55}"/>`;
+
+      const g = state.groups[i] || { members:[] };
+      const members = groupMembersDisplay(g);
+      const shownMembers = members.slice(0,4);
+      const extra = members.length - shownMembers.length;
+      let membersHtml = '';
+      if(shownMembers.length === 0){
+        membersHtml = `<li class="wk-group-box-empty" style="list-style:none;">Chưa có tên</li>`;
+      } else {
+        membersHtml = shownMembers.map(m=>`<li>${escapeHtml(m)}</li>`).join('');
+        if(extra > 0) membersHtml += `<li style="font-weight:400;color:#8B9490;">+${extra} khác</li>`;
+      }
+
+      const box = document.createElement('div');
+      box.className = 'wk-group-box' + (isActive ? ' active' : '');
+      box.style.left = bx + '%';
+      box.style.top = by + '%';
+      box.innerHTML = `<p class="wk-group-box-header" style="color:${color}">${groupLabel(i)}</p><ul class="wk-group-box-members">${membersHtml}</ul>`;
+      canvas.appendChild(box);
+    }
+
+    // center pointer dot
+    svgInner += `<circle cx="${cx}" cy="${cy}" r="5" fill="#E8590C" stroke="#23241F" stroke-width="1.5"/>`;
+    svg.innerHTML = svgInner;
+  }
+
+  // ---------- TODAY / TOMORROW / DAY-AFTER ----------
+  function dutyCardHtml(label, dateObj, isToday){
+    const idx = groupIndexForDate(dateObj);
+    const g = idx >= 0 ? state.groups[idx] : null;
+    const members = g ? groupMembersDisplay(g) : [];
+    const color = idx >= 0 ? groupColor(idx) : '#C9CDD1';
+    let body;
+    if(idx < 0){
+      body = `<li style="font-weight:400;color:var(--steel);">Chưa có dữ liệu</li>`;
+    } else if(members.length === 0){
+      body = `<li style="font-weight:400;color:var(--steel);">${groupLabel(idx)} — chưa có tên thành viên</li>`;
+    } else {
+      body = members.map(m=>`<li>${escapeHtml(m)}</li>`).join('');
+    }
+    const groupNameHtml = idx>=0 ? `<p class="wk-duty-group-name"><span class="wk-color-dot" style="background:${color}"></span>${groupLabel(idx)}</p>` : '';
+    return `
+      <div class="wk-duty-tag ${isToday?'today':''}" style="border-left:4px solid ${color};">
+        <p class="wk-duty-kicker">${label}</p>
+        <p class="wk-duty-date">${fmtDate(dateObj)} — ${WEEKDAYS_VN[dateObj.getDay()]}</p>
+        ${groupNameHtml}
+        <ul class="wk-duty-names">${body}</ul>
+      </div>
+    `;
+  }
+
+  function renderTriple(){
+    const today = new Date();
+    const tomorrow = new Date(); tomorrow.setDate(today.getDate()+1);
+    const dayAfter = new Date(); dayAfter.setDate(today.getDate()+2);
+
+    $('wk-today-tag').textContent = fmtDate(today) + ' · ' + WEEKDAYS_VN[today.getDay()];
+
+    $('wk-triple-row').innerHTML =
+      dutyCardHtml('Hôm nay', today, true) +
+      dutyCardHtml('Ngày mai', tomorrow, false) +
+      dutyCardHtml('Ngày mốt', dayAfter, false);
+  }
+
+  // ---------- TABLE ----------
+  function renderTable(){
+    const body = $('wk-schedule-body');
+    body.innerHTML = '';
+    const n = 14;
+    const today = toDateOnly(new Date());
+    for(let i=0;i<n;i++){
+      const d = new Date(today); d.setDate(today.getDate()+i);
+      const idx = groupIndexForDate(d);
+      let personCell;
+      if(idx < 0){
+        personCell = '—';
+      } else {
+        const g = state.groups[idx];
+        const members = groupMembersDisplay(g);
+        const label = groupLabel(idx);
+        const color = groupColor(idx);
+        const dot = `<span class="wk-color-dot" style="background:${color}; margin-right:6px; vertical-align:middle;"></span>`;
+        personCell = dot + (members.length ? `${label}: ${members.map(escapeHtml).join(', ')}` : `${label} (chưa có tên)`);
+      }
+      const tr = document.createElement('tr');
+      if(i===0) tr.classList.add('is-today');
+      else if(i===1) tr.classList.add('is-tomorrow');
+      tr.innerHTML = `<td>${fmtDate(d)} <span style="color:var(--steel); font-family:'JetBrains Mono',monospace; font-size:11px;">— ${WEEKDAYS_VN[d.getDay()]}</span></td><td>${personCell}</td>`;
+      body.appendChild(tr);
+    }
+  }
+
+  function renderAll(){
+    ensureGroupsArray();
+    clampStep();
+    renderStepper();
+    renderStepContent();
+    renderNav();
+    renderDial();
+    renderTriple();
+    renderTable();
+  }
+
+  // ---------- NAV EVENTS ----------
+  $('wk-back-btn').addEventListener('click', ()=>{
+    if(state.wizardStep > 0){ state.wizardStep--; renderAll(); }
+  });
+  $('wk-next-btn').addEventListener('click', ()=>{
+    const t = totalSteps();
+    if(state.wizardStep === 0 && (!state.groupCount || state.groupCount < 1)){
+      alert('Vui lòng nhập số nhóm trực (tối thiểu 1) trước khi tiếp tục.');
+      return;
+    }
+    if(state.wizardStep === t-1){
+      saveState();
+      return;
+    }
+    state.wizardStep++;
+    renderAll();
+  });
+  $('wk-reset-btn').addEventListener('click', async ()=>{
+    if(!confirm('Xoá toàn bộ danh sách và thiết lập của kho này?')) return;
+    state = {
+      name: state.name, adminId: state.adminId,
+      groupCount:0, groups:[], startDate: new Date().toISOString().slice(0,10),
+      startGroupIndex:0, wizardStep:0
+    };
+    renderAll();
+    await saveState();
+  });
+
+  // ---------- AUTH EVENTS ----------
+  $('wk-tab-login').addEventListener('click', ()=> switchAuthTab('login'));
+  $('wk-tab-register').addEventListener('click', ()=> switchAuthTab('register'));
+  $('wk-login-submit').addEventListener('click', doLogin);
+  $('wk-register-submit').addEventListener('click', doRegister);
+  $('wk-logout-btn').addEventListener('click', doLogout);
+  ['wk-login-id','wk-login-pass'].forEach(id=>{
+    $(id).addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
+  });
+  ['wk-reg-name','wk-reg-id','wk-reg-pass','wk-reg-pass2'].forEach(id=>{
+    $(id).addEventListener('keydown', (e)=>{ if(e.key==='Enter') doRegister(); });
+  });
+
+  // ---------- BOOT: theo dõi trạng thái đăng nhập Firebase ----------
+  auth.onAuthStateChanged((user)=>{
+    if(user){
+      showApp(user.uid);
+    } else {
+      showAuthScreen();
+    }
+  });
+})();
+</script>
+</body>
+</html>
