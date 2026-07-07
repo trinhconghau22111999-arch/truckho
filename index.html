@@ -192,6 +192,23 @@
   table.wk-table tr.is-tomorrow td{ background:rgba(255,201,60,0.18); }
   .wk-warn{ background:#FFF4E0; border:1.5px dashed var(--orange); color:#93450A; font-size:13px; padding:10px 14px; border-radius:10px; margin-top:12px; }
 
+  .wk-edit-pencil-btn{
+    width:30px; height:30px; border-radius:50%; border:1.5px solid var(--steel-soft);
+    background:#fff; color:var(--steel); font-size:14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    transition:all .12s ease;
+  }
+  .wk-edit-pencil-btn:hover{ border-color:var(--orange); color:var(--orange); }
+  .wk-edit-pencil-btn.active{ background:var(--orange); border-color:var(--orange); color:#fff; }
+  .wk-edit-table-hint{ font-size:11.5px; color:var(--steel); background:#FFF4E0; border:1px dashed var(--orange); border-radius:8px; padding:8px 10px; margin:-4px 0 12px; }
+  textarea.wk-duty-edit-input{
+    width:100%; min-height:60px; padding:7px 9px; border:1.5px solid var(--steel-soft);
+    background:#fff; border-radius:8px; font-family:inherit; font-size:13px; color:var(--ink);
+    resize:vertical; line-height:1.5;
+  }
+  textarea.wk-duty-edit-input:focus{ outline:none; border-color:var(--orange); box-shadow:0 0 0 3px rgba(255,107,53,0.15); }
+  .wk-duty-edit-override-tag{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--orange); font-weight:700; text-transform:uppercase; margin-bottom:3px; display:block; }
+
   /* ---------- AUTH SCREEN ---------- */
   .wk-auth-screen{
     min-height:100vh;
@@ -248,6 +265,39 @@
     padding:7px 12px; border-radius:999px; cursor:pointer; font-weight:600; white-space:nowrap;
   }
   .wk-logout-btn:hover{ background:rgba(255,255,255,0.22); }
+  .wk-delete-account-btn{
+    font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+    background:rgba(255,77,109,0.16); color:#FFD3DB; border:1px solid rgba(255,77,109,0.45);
+    padding:7px 12px; border-radius:999px; cursor:pointer; font-weight:600; white-space:nowrap;
+  }
+  .wk-delete-account-btn:hover{ background:rgba(255,77,109,0.30); color:#fff; }
+
+  /* ---------- DELETE ACCOUNT MODAL ---------- */
+  .wk-modal-overlay{
+    position:fixed; inset:0; background:rgba(20,21,25,0.55); backdrop-filter:blur(2px);
+    display:none; align-items:center; justify-content:center; padding:20px; z-index:100;
+  }
+  .wk-modal-overlay.show{ display:flex; }
+  .wk-modal-card{
+    width:100%; max-width:400px; background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:24px 24px 20px; position:relative; overflow:hidden;
+  }
+  .wk-modal-card::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:6px; background:var(--pink);
+  }
+  .wk-modal-title{ font-weight:800; font-size:19px; margin:8px 0 8px; }
+  .wk-modal-desc{ font-size:13px; color:var(--steel); line-height:1.55; margin:0 0 16px; }
+  .wk-modal-desc b{ color:var(--ink); }
+  .wk-modal-actions{ display:flex; gap:10px; margin-top:18px; }
+  .wk-modal-actions .wk-btn{ flex:1; text-align:center; }
+  .wk-btn.danger{ background:linear-gradient(120deg, #B3123C, var(--pink)); }
+  .wk-modal-error{
+    background:#FFF0EE; border:1.5px dashed var(--pink); color:#9A1030; font-size:12.5px;
+    padding:9px 12px; border-radius:9px; margin-top:12px; display:none;
+  }
+  .wk-modal-error.show{ display:block; }
+  .wk-modal-loading{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--steel); text-align:center; margin-top:10px; display:none; }
+  .wk-modal-loading.show{ display:block; }
 </style>
 </head>
 <body>
@@ -304,6 +354,7 @@
         <div class="wk-user-box">
           <span class="wk-user-box-text" id="wk-user-box-text">—</span>
           <button class="wk-logout-btn" id="wk-logout-btn">Đăng xuất</button>
+          <button class="wk-delete-account-btn" id="wk-delete-account-btn" type="button">Xoá tài khoản</button>
         </div>
       </div>
     </div>
@@ -342,7 +393,11 @@
 
     <!-- SCHEDULE TABLE -->
     <div class="wk-card">
-      <p class="wk-card-label">Bảng lịch trực sắp tới</p>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <p class="wk-card-label" style="margin-bottom:14px; flex:1;">Bảng lịch trực sắp tới</p>
+        <button class="wk-edit-pencil-btn" id="wk-edit-table-btn" title="Chỉnh sửa người trực theo từng ngày" type="button">&#9998;</button>
+      </div>
+      <p class="wk-edit-table-hint" id="wk-edit-table-hint" style="display:none;">Đang chỉnh sửa — sửa tên rồi bấm ra ngoài ô để lưu. Xoá hết nội dung để khôi phục về mặc định theo nhóm. Thay đổi chỉ áp dụng cho đúng ngày đó, không ảnh hưởng vòng xoay nhóm.</p>
       <div style="overflow-x:auto; border-radius:10px; border:1px solid var(--line);">
         <table class="wk-table">
           <thead>
@@ -351,6 +406,23 @@
           <tbody id="wk-schedule-body"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DELETE ACCOUNT MODAL ================= -->
+<div class="wk-modal-overlay" id="wk-delete-modal">
+  <div class="wk-modal-card">
+    <p class="wk-auth-eyebrow" style="margin-top:0;">Vùng nguy hiểm</p>
+    <h2 class="wk-modal-title">Xoá tài khoản?</h2>
+    <p class="wk-modal-desc">Hành động này sẽ xoá <b>vĩnh viễn</b> tài khoản Admin và toàn bộ dữ liệu kho (nhóm trực, lịch, chỉnh sửa riêng từng ngày...). Không thể khôi phục lại. Vui lòng nhập mật khẩu để xác nhận.</p>
+    <label class="wk-field" style="margin-top:0;">Mật khẩu</label>
+    <input type="password" id="wk-delete-pass" autocomplete="current-password" placeholder="••••••••" />
+    <p class="wk-modal-error" id="wk-delete-error"></p>
+    <p class="wk-modal-loading" id="wk-delete-loading">Đang xoá tài khoản…</p>
+    <div class="wk-modal-actions">
+      <button class="wk-btn secondary" id="wk-delete-cancel-btn" type="button">Huỷ</button>
+      <button class="wk-btn danger" id="wk-delete-confirm-btn" type="button">Xoá vĩnh viễn</button>
     </div>
   </div>
 </div>
@@ -398,8 +470,10 @@
     groups: [],          // [{ memberCount:number, members:[string,...] }]
     startDate: new Date().toISOString().slice(0,10),
     startGroupIndex: 0,  // 0-based index of group on duty on startDate
+    overrides: {},        // { 'YYYY-MM-DD': ['Tên A','Tên B',...] } — chỉnh sửa riêng cho từng ngày
     wizardStep: 0
   };
+  let tableEditMode = false;
 
   const $ = (id) => document.getElementById(id);
 
@@ -459,6 +533,49 @@
     return g.members.filter(m => m && m.trim().length > 0);
   }
 
+  // ---------- OVERRIDE TÊN TRỰC THEO TỪNG NGÀY ----------
+  // Cho phép sửa riêng danh sách người trực của 1 ngày cụ thể (ví dụ đổi ca),
+  // mà KHÔNG làm thay đổi nhóm nào tới lượt trực (vòng xoay nhóm giữ nguyên),
+  // và KHÔNG ảnh hưởng tới hình vẽ "Vòng xoay trực".
+  function dateKeyOf(dateObj){
+    const d = toDateOnly(dateObj);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function defaultMembersForDate(dateObj){
+    const idx = groupIndexForDate(dateObj);
+    if(idx < 0) return [];
+    return groupMembersDisplay(state.groups[idx]);
+  }
+
+  function displayMembersForDate(dateObj){
+    const key = dateKeyOf(dateObj);
+    const ov = state.overrides ? state.overrides[key] : null;
+    if(Array.isArray(ov)) return ov;
+    return defaultMembersForDate(dateObj);
+  }
+
+  function isOverriddenDate(dateObj){
+    const key = dateKeyOf(dateObj);
+    return !!(state.overrides && Array.isArray(state.overrides[key]));
+  }
+
+  function setOverrideForDate(dateObj, namesArray){
+    if(!state.overrides) state.overrides = {};
+    const key = dateKeyOf(dateObj);
+    const defaults = defaultMembersForDate(dateObj);
+    const sameAsDefault = namesArray.length === defaults.length &&
+      namesArray.every((v,i)=> v === defaults[i]);
+    if(namesArray.length === 0 || sameAsDefault){
+      delete state.overrides[key];
+    } else {
+      state.overrides[key] = namesArray;
+    }
+  }
+
   // ---------- FIRESTORE SYNC (thời gian thực) ----------
   function warehouseDocRef(uid){
     return db.collection(WAREHOUSES_COLLECTION).doc(uid);
@@ -473,7 +590,7 @@
         const keepStep = state.wizardStep;
         state = Object.assign({
           groupCount:0, groups:[], startDate:new Date().toISOString().slice(0,10),
-          startGroupIndex:0, wizardStep:0
+          startGroupIndex:0, overrides:{}, wizardStep:0
         }, data);
         if(typeof data.wizardStep !== 'number') state.wizardStep = keepStep;
         ensureGroupsArray();
@@ -563,7 +680,8 @@
       'auth/invalid-credential': 'ID Admin hoặc mật khẩu không đúng.',
       'auth/email-already-in-use': 'ID Admin này đã được đăng ký, vui lòng chọn ID khác.',
       'auth/weak-password': 'Mật khẩu quá ngắn (tối thiểu 6 ký tự).',
-      'auth/too-many-requests': 'Bạn thử sai quá nhiều lần, vui lòng thử lại sau ít phút.'
+      'auth/too-many-requests': 'Bạn thử sai quá nhiều lần, vui lòng thử lại sau ít phút.',
+      'auth/requires-recent-login': 'Phiên đăng nhập đã cũ, vui lòng đăng xuất rồi đăng nhập lại trước khi xoá tài khoản.'
     };
     return map[code] || 'Có lỗi xảy ra, vui lòng thử lại.';
   }
@@ -605,6 +723,7 @@
         groups: [],
         startDate: new Date().toISOString().slice(0,10),
         startGroupIndex: 0,
+        overrides: {},
         wizardStep: 0
       };
       await warehouseDocRef(uid).set(initialState);
@@ -618,6 +737,58 @@
 
   async function doLogout(){
     try{ await auth.signOut(); }catch(e){ /* ignore */ }
+  }
+
+  // ---------- DELETE ACCOUNT ----------
+  function setDeleteError(msg){
+    const el = $('wk-delete-error');
+    if(msg){ el.textContent = msg; el.classList.add('show'); }
+    else { el.textContent=''; el.classList.remove('show'); }
+  }
+
+  function setDeleteLoading(on){
+    $('wk-delete-loading').classList.toggle('show', !!on);
+    $('wk-delete-confirm-btn').disabled = !!on;
+    $('wk-delete-cancel-btn').disabled = !!on;
+  }
+
+  function openDeleteModal(){
+    $('wk-delete-pass').value = '';
+    setDeleteError(null);
+    setDeleteLoading(false);
+    $('wk-delete-modal').classList.add('show');
+    $('wk-delete-pass').focus();
+  }
+
+  function closeDeleteModal(){
+    $('wk-delete-modal').classList.remove('show');
+  }
+
+  async function doDeleteAccount(){
+    setDeleteError(null);
+    const passVal = $('wk-delete-pass').value;
+    const user = auth.currentUser;
+    if(!user){ setDeleteError('Không tìm thấy phiên đăng nhập.'); return; }
+    if(!passVal){ setDeleteError('Vui lòng nhập mật khẩu để xác nhận.'); return; }
+    setDeleteLoading(true);
+    try{
+      // Xác thực lại mật khẩu trước khi cho phép xoá (Firebase yêu cầu đăng nhập gần đây cho thao tác xoá tài khoản)
+      const credential = firebase.auth.EmailAuthProvider.credential(user.email, passVal);
+      await user.reauthenticateWithCredential(credential);
+
+      // Xoá dữ liệu kho trên Firestore trước
+      await warehouseDocRef(user.uid).delete();
+
+      // Ngừng đồng bộ realtime rồi mới xoá tài khoản Auth
+      stopRealtimeSync();
+      await user.delete();
+
+      closeDeleteModal();
+      // onAuthStateChanged sẽ tự chuyển về màn hình đăng nhập
+    }catch(e){
+      setDeleteLoading(false);
+      setDeleteError(friendlyAuthError(e.code) || 'Có lỗi xảy ra, vui lòng thử lại.');
+    }
   }
 
   // ---------- STEPPER ----------
@@ -828,8 +999,7 @@
   // ---------- TODAY / TOMORROW / DAY-AFTER ----------
   function dutyCardHtml(label, dateObj, isToday){
     const idx = groupIndexForDate(dateObj);
-    const g = idx >= 0 ? state.groups[idx] : null;
-    const members = g ? groupMembersDisplay(g) : [];
+    const members = idx >= 0 ? displayMembersForDate(dateObj) : [];
     const color = idx >= 0 ? groupColor(idx) : '#C9CDD1';
     let body;
     if(idx < 0){
@@ -872,26 +1042,48 @@
     for(let i=0;i<n;i++){
       const d = new Date(today); d.setDate(today.getDate()+i);
       const idx = groupIndexForDate(d);
-      let personCell;
+      const key = dateKeyOf(d);
+      let personCellHtml;
       if(idx < 0){
-        personCell = '—';
+        personCellHtml = '—';
       } else {
-        const g = state.groups[idx];
-        const members = groupMembersDisplay(g);
         const label = groupLabel(idx);
         const color = groupColor(idx);
         const dot = `<span class="wk-color-dot" style="background:${color}; margin-right:6px; vertical-align:middle;"></span>`;
         const groupNameLine = `<div style="font-weight:700;">${dot}${escapeHtml(label)}</div>`;
-        const memberLines = members.length
-          ? members.map(m=>`<div style="padding-left:16px;">${escapeHtml(m)}</div>`).join('')
-          : `<div style="padding-left:16px; color:var(--steel); font-weight:400;">(chưa có tên)</div>`;
-        personCell = groupNameLine + memberLines;
+        const members = displayMembersForDate(d);
+        if(tableEditMode){
+          const overrideTag = isOverriddenDate(d) ? `<span class="wk-duty-edit-override-tag">Đã sửa riêng ngày này</span>` : '';
+          const textVal = escapeHtml(members.join('\n'));
+          personCellHtml = groupNameLine + overrideTag +
+            `<textarea class="wk-duty-edit-input" data-datekey="${key}" placeholder="Mỗi tên 1 dòng...">${textVal}</textarea>`;
+        } else {
+          const memberLines = members.length
+            ? members.map(m=>`<div style="padding-left:16px;">${escapeHtml(m)}</div>`).join('')
+            : `<div style="padding-left:16px; color:var(--steel); font-weight:400;">(chưa có tên)</div>`;
+          const overrideTag = isOverriddenDate(d) ? `<span class="wk-duty-edit-override-tag">Đã sửa riêng ngày này</span>` : '';
+          personCellHtml = groupNameLine + overrideTag + memberLines;
+        }
       }
       const tr = document.createElement('tr');
       if(i===0) tr.classList.add('is-today');
       else if(i===1) tr.classList.add('is-tomorrow');
-      tr.innerHTML = `<td>${fmtDate(d)} <span style="color:var(--steel); font-family:'JetBrains Mono',monospace; font-size:11px;">— ${WEEKDAYS_VN[d.getDay()]}</span></td><td>${personCell}</td>`;
+      tr.innerHTML = `<td><div>${fmtDate(d)}</div><div style="color:var(--steel); font-family:'JetBrains Mono',monospace; font-size:11px; margin-top:2px;">${WEEKDAYS_VN[d.getDay()]}</div></td><td>${personCellHtml}</td>`;
       body.appendChild(tr);
+    }
+    if(tableEditMode){
+      body.querySelectorAll('.wk-duty-edit-input').forEach(ta=>{
+        ta.addEventListener('change', (e)=>{
+          const key2 = e.target.getAttribute('data-datekey');
+          const names = e.target.value.split('\n').map(s=>s.trim()).filter(s=>s.length>0);
+          const [yy,mm,dd] = key2.split('-').map(Number);
+          const dObj = new Date(yy, mm-1, dd);
+          setOverrideForDate(dObj, names);
+          renderTable();
+          renderTriple();
+          scheduleAutoSave();
+        });
+      });
     }
   }
 
@@ -923,12 +1115,19 @@
     state.wizardStep++;
     renderAll();
   });
+  $('wk-edit-table-btn').addEventListener('click', ()=>{
+    tableEditMode = !tableEditMode;
+    $('wk-edit-table-btn').classList.toggle('active', tableEditMode);
+    $('wk-edit-table-hint').style.display = tableEditMode ? 'block' : 'none';
+    renderTable();
+  });
+
   $('wk-reset-btn').addEventListener('click', async ()=>{
     if(!confirm('Xoá toàn bộ danh sách và thiết lập của kho này?')) return;
     state = {
       name: state.name, adminId: state.adminId,
       groupCount:0, groups:[], startDate: new Date().toISOString().slice(0,10),
-      startGroupIndex:0, wizardStep:0
+      startGroupIndex:0, overrides:{}, wizardStep:0
     };
     renderAll();
     await saveState();
@@ -940,6 +1139,11 @@
   $('wk-login-submit').addEventListener('click', doLogin);
   $('wk-register-submit').addEventListener('click', doRegister);
   $('wk-logout-btn').addEventListener('click', doLogout);
+  $('wk-delete-account-btn').addEventListener('click', openDeleteModal);
+  $('wk-delete-cancel-btn').addEventListener('click', closeDeleteModal);
+  $('wk-delete-confirm-btn').addEventListener('click', doDeleteAccount);
+  $('wk-delete-pass').addEventListener('keydown', (e)=>{ if(e.key==='Enter') doDeleteAccount(); });
+  $('wk-delete-modal').addEventListener('click', (e)=>{ if(e.target.id === 'wk-delete-modal') closeDeleteModal(); });
   ['wk-login-id','wk-login-pass'].forEach(id=>{
     $(id).addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
   });
