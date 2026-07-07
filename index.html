@@ -397,7 +397,10 @@
         <p class="wk-card-label" style="margin-bottom:14px; flex:1;">Bảng lịch trực sắp tới</p>
         <button class="wk-edit-pencil-btn" id="wk-edit-table-btn" title="Chỉnh sửa người trực theo từng ngày" type="button">&#9998;</button>
       </div>
-      <p class="wk-edit-table-hint" id="wk-edit-table-hint" style="display:none;">Đang chỉnh sửa — sửa tên rồi bấm ra ngoài ô để lưu. Xoá hết nội dung để khôi phục về mặc định theo nhóm. Thay đổi chỉ áp dụng cho đúng ngày đó, không ảnh hưởng vòng xoay nhóm.</p>
+      <div id="wk-edit-table-hint-wrap" style="display:none;">
+        <p class="wk-edit-table-hint">Đang chỉnh sửa — sửa tên xong bấm nút <b>"Lưu thay đổi"</b> bên dưới để lưu. Chưa bấm thì chưa lưu gì cả, gõ thoải mái không sợ mất giữa chừng. Xoá hết nội dung 1 ô để khôi phục về mặc định theo nhóm. Thay đổi chỉ áp dụng cho đúng ngày đó, không ảnh hưởng vòng xoay nhóm.</p>
+        <button class="wk-btn" id="wk-save-table-edits-btn" type="button" style="margin-bottom:14px;">Lưu thay đổi</button>
+      </div>
       <div style="overflow-x:auto; border-radius:10px; border:1px solid var(--line);">
         <table class="wk-table">
           <thead>
@@ -1071,25 +1074,23 @@
       tr.innerHTML = `<td><div>${fmtDate(d)}</div><div style="color:var(--steel); font-family:'JetBrains Mono',monospace; font-size:11px; margin-top:2px;">${WEEKDAYS_VN[d.getDay()]}</div></td><td>${personCellHtml}</td>`;
       body.appendChild(tr);
     }
-    if(tableEditMode){
-      body.querySelectorAll('.wk-duty-edit-input').forEach(ta=>{
-        ta.addEventListener('change', (e)=>{
-          const key2 = e.target.getAttribute('data-datekey');
-          const names = e.target.value.split('\n').map(s=>s.trim()).filter(s=>s.length>0);
-          const [yy,mm,dd] = key2.split('-').map(Number);
-          const dObj = new Date(yy, mm-1, dd);
-          setOverrideForDate(dObj, names);
-          // Lưu ý: KHÔNG gọi renderTable() ở đây — vẽ lại cả bảng ngay lúc này sẽ phá huỷ
-          // ô textarea đang được focus trên điện thoại (một số bàn phím ảo bắn sự kiện
-          // "change" ngay khi xuống dòng), khiến người dùng bị mất focus giữa chừng lúc
-          // đang gõ, nhìn như bị lưu/ngắt ngang trước khi gõ xong. Chỉ đồng bộ 3 ô
-          // hôm nay/mai/mốt + lưu dữ liệu, còn bảng sẽ tự cập nhật nhãn "đã sửa riêng"
-          // ở lần vẽ lại tiếp theo (ví dụ khi tắt/bật lại chế độ sửa).
-          renderTriple();
-          scheduleAutoSave();
-        });
-      });
-    }
+    // Lưu ý: KHÔNG gắn sự kiện tự lưu (change/input) trên các ô textarea nữa.
+    // Người dùng bấm nút "Lưu thay đổi" (xem hàm saveAllTableEdits) để chủ động
+    // quyết định lúc nào lưu — tránh bị lưu/đồng bộ ngang khi đang gõ dở.
+  }
+
+  function saveAllTableEdits(){
+    const inputs = document.querySelectorAll('.wk-duty-edit-input');
+    inputs.forEach(ta=>{
+      const key2 = ta.getAttribute('data-datekey');
+      const names = ta.value.split('\n').map(s=>s.trim()).filter(s=>s.length>0);
+      const [yy,mm,dd] = key2.split('-').map(Number);
+      const dObj = new Date(yy, mm-1, dd);
+      setOverrideForDate(dObj, names);
+    });
+    renderTable();
+    renderTriple();
+    scheduleAutoSave();
   }
 
   function renderAll(){
@@ -1123,8 +1124,11 @@
   $('wk-edit-table-btn').addEventListener('click', ()=>{
     tableEditMode = !tableEditMode;
     $('wk-edit-table-btn').classList.toggle('active', tableEditMode);
-    $('wk-edit-table-hint').style.display = tableEditMode ? 'block' : 'none';
+    $('wk-edit-table-hint-wrap').style.display = tableEditMode ? 'block' : 'none';
     renderTable();
+  });
+  $('wk-save-table-edits-btn').addEventListener('click', ()=>{
+    saveAllTableEdits();
   });
 
   $('wk-reset-btn').addEventListener('click', async ()=>{
