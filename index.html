@@ -372,6 +372,7 @@
           <button class="wk-btn" id="wk-next-btn">Trang sau &rarr;</button>
         </div>
         <div class="wk-bottom-actions">
+          <button class="wk-btn" id="wk-manual-save-btn">💾 Lưu</button>
           <button class="wk-btn secondary" id="wk-reset-btn">Xoá tất cả</button>
           <span class="wk-save-msg" id="wk-save-msg"></span>
         </div>
@@ -610,7 +611,6 @@
     if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; }
   }
 
-  let saveTimer = null;
   async function saveState(){
     if(!currentUid) return;
     try{
@@ -623,11 +623,11 @@
     }
   }
 
-  // Tự động lưu (debounce) mỗi khi state thay đổi qua nhập liệu, để mọi thiết bị khác cập nhật realtime
+  // ĐÃ TẮT tính năng tự động lưu (auto-save). Mọi thay đổi chỉ được lưu lên
+  // server khi người dùng chủ động bấm nút "💾 Lưu" (hoặc nút "Lưu & hoàn tất ✓"
+  // ở bước cuối, hoặc nút "Lưu thay đổi" trong bảng lịch).
   function scheduleAutoSave(){
-    if(!currentUid) return;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveState, 500);
+    // Không làm gì cả — giữ hàm rỗng để không phải sửa các lời gọi phía dưới.
   }
 
   function updateUserBox(data){
@@ -1090,7 +1090,7 @@
     });
     renderTable();
     renderTriple();
-    scheduleAutoSave();
+    saveState();
   }
 
   function renderAll(){
@@ -1129,6 +1129,9 @@
   });
   $('wk-save-table-edits-btn').addEventListener('click', ()=>{
     saveAllTableEdits();
+  });
+  $('wk-manual-save-btn').addEventListener('click', ()=>{
+    saveState();
   });
 
   $('wk-reset-btn').addEventListener('click', async ()=>{
