@@ -150,6 +150,7 @@
     border-radius:10px;
     padding:6px 10px; width:max-content; max-width:none; white-space:nowrap; text-align:left;
     box-shadow:0 2px 8px rgba(34,37,43,0.10);
+    cursor:pointer;
   }
   .wk-group-box.active{ border-color:var(--orange); box-shadow:0 0 0 3px rgba(255,107,53,0.22), 0 2px 8px rgba(34,37,43,0.10); }
   .wk-group-box-header{ font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--steel); margin:0 0 3px; font-weight:700; }
@@ -754,6 +755,7 @@
   }
 
   // ---------- DIAL ----------
+  let dialTopZ = 10;
   function renderDial(){
     const svg = $('wk-dial-svg');
     const canvas = $('wk-dial-canvas');
@@ -769,7 +771,7 @@
     const today = new Date();
     const activeIdx = groupIndexForDate(today);
 
-    const cx=150, cy=150, rCircle=52;
+    const cx=150, cy=150, rCircle=30;
     let svgInner = `<circle cx="${cx}" cy="${cy}" r="${rCircle}" fill="none" stroke="#22252B" stroke-width="2.5" stroke-dasharray="${n>1?'0':'5 5'}"/>`;
 
     const boxRadiusPct = 44; // percent of canvas for box position (further out = more room for wide boxes)
@@ -809,7 +811,12 @@
       box.className = 'wk-group-box' + (isActive ? ' active' : '');
       box.style.left = bx + '%';
       box.style.top = by + '%';
+      box.style.zIndex = isActive ? 5 : (i+1);
       box.innerHTML = `<p class="wk-group-box-header" style="color:${color}">${groupLabel(i)}</p><ul class="wk-group-box-members">${membersHtml}</ul>`;
+      box.addEventListener('pointerdown', ()=>{
+        dialTopZ++;
+        box.style.zIndex = dialTopZ;
+      });
       canvas.appendChild(box);
     }
 
@@ -874,7 +881,11 @@
         const label = groupLabel(idx);
         const color = groupColor(idx);
         const dot = `<span class="wk-color-dot" style="background:${color}; margin-right:6px; vertical-align:middle;"></span>`;
-        personCell = dot + (members.length ? `${label}: ${members.map(escapeHtml).join(', ')}` : `${label} (chưa có tên)`);
+        const groupNameLine = `<div style="font-weight:700;">${dot}${escapeHtml(label)}</div>`;
+        const memberLines = members.length
+          ? members.map(m=>`<div style="padding-left:16px;">${escapeHtml(m)}</div>`).join('')
+          : `<div style="padding-left:16px; color:var(--steel); font-weight:400;">(chưa có tên)</div>`;
+        personCell = groupNameLine + memberLines;
       }
       const tr = document.createElement('tr');
       if(i===0) tr.classList.add('is-today');
