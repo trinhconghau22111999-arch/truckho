@@ -396,6 +396,7 @@
       <div style="display:flex; align-items:center; gap:8px;">
         <p class="wk-card-label" style="margin-bottom:14px; flex:1;">Bảng lịch trực sắp tới</p>
         <button class="wk-edit-pencil-btn" id="wk-edit-table-btn" title="Chỉnh sửa người trực theo từng ngày" type="button">&#9998;</button>
+        <button class="wk-edit-pencil-btn" id="wk-reset-overrides-btn" title="Xoá hết các sửa riêng từng ngày, cập nhật lại theo lịch trực" type="button">&#8635;</button>
       </div>
       <div id="wk-edit-table-hint-wrap" style="display:none;">
         <p class="wk-edit-table-hint">Đang chỉnh sửa — sửa tên xong bấm nút <b>"Lưu thay đổi"</b> bên dưới để lưu. Chưa bấm thì chưa lưu gì cả, gõ thoải mái không sợ mất giữa chừng. Xoá hết nội dung 1 ô để khôi phục về mặc định theo nhóm. Thay đổi chỉ áp dụng cho đúng ngày đó, không ảnh hưởng vòng xoay nhóm.</p>
@@ -612,6 +613,11 @@
 
   async function saveState(){
     if(!currentUid) return;
+    // Luôn vẽ lại bảng lịch + ô hôm nay/ngày mai/ngày mốt trước khi lưu,
+    // để dù đang ở bước nào của wizard, bấm lưu/cập nhật cũng đảm bảo
+    // bảng cuối trang khớp đúng với lịch trực vừa thiết lập.
+    renderTable();
+    renderTriple();
     try{
       await warehouseDocRef(currentUid).set(state, { merge:true });
       $('wk-save-msg').textContent = 'Đã lưu & đồng bộ ✓';
@@ -833,6 +839,8 @@
         state.groupCount = v;
         ensureGroupsArray();
         renderDial();
+        renderTriple();
+        renderTable();
         scheduleAutoSave();
       });
       return;
@@ -895,6 +903,8 @@
     if(grp.members.length > v) grp.members.length = v;
     renderMemberRows(gi);
     renderDial();
+    renderTriple();
+    renderTable();
     scheduleAutoSave();
   }
 
@@ -1114,6 +1124,7 @@
       return;
     }
     if(state.wizardStep === t-1){
+      renderAll();
       saveState();
       return;
     }
@@ -1125,6 +1136,17 @@
     $('wk-edit-table-btn').classList.toggle('active', tableEditMode);
     $('wk-edit-table-hint-wrap').style.display = tableEditMode ? 'block' : 'none';
     renderTable();
+  });
+
+  $('wk-reset-overrides-btn').addEventListener('click', async ()=>{
+    if(!confirm('Xoá toàn bộ các sửa riêng theo từng ngày và cập nhật lại bảng đúng theo lịch trực hiện tại?')) return;
+    state.overrides = {};
+    tableEditMode = false;
+    $('wk-edit-table-btn').classList.remove('active');
+    $('wk-edit-table-hint-wrap').style.display = 'none';
+    renderTable();
+    renderTriple();
+    await saveState();
   });
   $('wk-save-table-edits-btn').addEventListener('click', ()=>{
     saveAllTableEdits();
